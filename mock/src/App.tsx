@@ -4,6 +4,7 @@ import { applicantSeed, internshipSeed } from './data/seed'
 import { runAllocation } from './engine/allocation'
 import { NavBar, type TabId } from './components/NavBar'
 import { Dashboard } from './components/Dashboard'
+import { Analytics } from './components/Analytics'
 import { Applicants } from './components/Applicants'
 import { Allocations } from './components/Allocations'
 import { Reports } from './components/Reports'
@@ -21,6 +22,13 @@ function App() {
     setRun(runAllocation([...applicants, app], internshipSeed))
   }
 
+  function addApplicants(list: Applicant[]) {
+    if (list.length === 0) return
+    const merged = [...applicants, ...list]
+    setApplicants(merged)
+    setRun(runAllocation(merged, internshipSeed))
+  }
+
   function rerun() {
     setRun(runAllocation(applicants, internshipSeed))
   }
@@ -33,8 +41,11 @@ function App() {
         {tab === 'dashboard' && (
           <Dashboard applicants={applicants} internships={internshipSeed} run={run} />
         )}
+        {tab === 'analytics' && (
+          <Analytics applicants={applicants} internships={internshipSeed} run={run} />
+        )}
         {tab === 'applicants' && (
-          <Applicants applicants={applicants} onAdd={addApplicant} />
+          <Applicants applicants={applicants} onAdd={addApplicant} onAddMany={addApplicants} />
         )}
         {tab === 'allocations' && (
           <Allocations

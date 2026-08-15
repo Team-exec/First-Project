@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import type { Applicant, Category, LocationPref, Sector } from '../types'
 import { CATEGORIES, SECTORS, SKILLS, STATES } from '../data/seed'
+import { downloadTemplate, parseUpload, type UploadSummary } from '../engine/upload'
 
 interface ApplicantsProps {
   applicants: Applicant[]
   onAdd: (app: Applicant) => void
+  onAddMany: (apps: Applicant[]) => void
 }
 
 const QUALIFICATIONS = [
@@ -35,10 +37,44 @@ const emptyForm = {
   preferredSectors: [] as Sector[],
 }
 
-export function Applicants({ applicants, onAdd }: ApplicantsProps) {
+export function Applicants({ applicants, onAdd, onAddMany }: ApplicantsProps) {
   const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState('')
   const [added, setAdded] = useState('')
+  const [summary, setSummary] = useState<UploadSummary | null>(null)
+  const [uploadError, setUploadError] = useState('')
+  const [importMsg, setImportMsg] = useState('')
+
+  async function handleFile(file: File | undefined) {
+    setUploadError('')
+    setImportMsg('')
+    if (!file) return
+    if (!/\.(csv|xlsx|xls)$/i.test(file.name)) {
+      setUploadError('Unsupported file type. Use .csv, .xlsx or .xls.')
+      return
+    }
+    try {
+      setSummary(await parseUpload(file))
+    } catch {
+      setUploadError('Could not read the file. Check the format and try again.')
+    }
+  }
+
+  function importValid() {
+    if (!summary || summary.valid.length === 0) return
+    const base = Math.max(...applicants.map((a) => Number(a.id.split('-')[1])), 100)
+    const list: Applicant[] = summary.valid.map((row, i) => ({
+      id: `APP-${base + i + 1}`,
+      ...row.data!,
+    }))
+    onAddMany(list)
+    setImportMsg(
+      `Imported ${list.length} applicant${list.length === 1 ? '' : 's'}${
+        summary.invalid.length > 0 ? `; ${summary.invalid.length} row(s) skipped` : ''
+      }.`,
+    )
+    setSummary(null)
+  }
 
   function toggleSkill(skill: string) {
     setForm((f) => ({
@@ -229,6 +265,81 @@ export function Applicants({ applicants, onAdd }: ApplicantsProps) {
           </button>
           {added && <p className="form-success">{added}</p>}
         </form>
+      </section>
+
+      <section className="panel">
+        <h3>Bulk Upload</h3>
+        <p className="panel-note">
+          Import applicants from a CSV or Excel (.xlsx / .xls) file. Columns: Name, Age, Gender,
+          Qualification, Academics (%), State, Category, Location Preference, Skills,
+          Preferred Sectors.
+        </p>
+        <div className="upload-row">
+          <label className="file-input">
+            Choose file
+            <input
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              onChange={(e) => {
+                void handleFile(e.target.files?.[0])
+                e.target.value = ''
+              }}
+            />
+          </label>
+          <button type="button" className="btn-secondary" onClick={downloadTemplate}>
+            Download CSV template
+          </button>
+        </div>
+        {uploadError && <p className="form-error">{uploadError}</p>}
+        {importMsg && <p className="form-success">{importMsg}</p>}
+
+        {summary && (
+          <div className="upload-preview">
+            <div className="upload-preview-head">
+              <span>
+                <strong>{summary.valid.length}</strong> valid row(s),{' '}
+                <strong>{summary.invalid.length}</strong> invalid
+              </span>
+              <div className="head-actions">
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={importValid}
+                  disabled={summary.valid.length === 0}
+                >
+                  Import {summary.valid.length}
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setSummary(null)}
+                >
+                  Discard
+                </button>
+              </div>
+            </div>
+            {summary.invalid.length > 0 && (
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Row</th>
+                      <th>Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {summary.invalid.map((r) => (
+                      <tr key={r.row} className="row-unalloc">
+                        <td className="mono">{r.row}</td>
+                        <td>{r.reason}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="panel">

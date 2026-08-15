@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
+import logo from '../assets/logo.svg'
 
-export type TabId = 'dashboard' | 'applicants' | 'allocations' | 'reports'
+export type TabId = 'dashboard' | 'analytics' | 'applicants' | 'allocations' | 'reports'
 
 interface NavBarProps {
   active: TabId
@@ -11,6 +12,7 @@ type Theme = 'light' | 'dark'
 
 const NAV_ITEMS: { id: TabId; label: string }[] = [
   { id: 'dashboard', label: 'Dashboard' },
+  { id: 'analytics', label: 'Analytics' },
   { id: 'applicants', label: 'Applicants' },
   { id: 'allocations', label: 'Allocations' },
   { id: 'reports', label: 'Reports' },
@@ -39,7 +41,7 @@ export function NavBar({ active, onNavigate }: NavBarProps) {
   return (
     <header className="navbar">
       <div className="nav-brand">
-        <span className="brand-mark">AI</span>
+        <img src={logo} alt="PM Internship Scheme — Smart Allocation Engine logo" className="brand-mark" />
         <div className="brand-text">
           <h1>PM Internship Scheme</h1>
           <p>Smart Allocation Engine</p>
